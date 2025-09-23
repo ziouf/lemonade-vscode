@@ -2,7 +2,6 @@ import * as vscode from "vscode";
 import { LemonadeChatModelProvider } from "./provider";
 
 export function activate(context: vscode.ExtensionContext) {
-	// Build a descriptive User-Agent to help quantify API usage
 	const ext = vscode.extensions.getExtension("Lemonade.lemonade-server");
 	const extVersion = ext?.packageJSON?.version ?? "unknown";
 	const vscodeVersion = vscode.version;
