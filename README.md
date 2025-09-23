@@ -30,7 +30,7 @@ Use your local Lemonade LLM server with VS Code GitHub Copilot Chat! Connect to 
 
 ## 🛠️ Development
 ```bash
-git clone https://github.com/lemonade/lemonade-server
+git clone https://github.com/lemonade-sdk/lemonade
 cd lemonade-server
 npm install
 npm run compile
@@ -50,7 +50,7 @@ The extension connects to `http://127.0.0.1:8000/api/v1` by default. You can cha
 3. Entering your custom Lemonade server URL
 
 ## Support & License
-* Open issues: https://github.com/lemonade/lemonade-server/issues
+* Open issues: https://github.com/lemonade-sdk/lemonade/issues
 * License: MIT License Copyright (c) 2025 Lemonade
 
 ## 🙏 Acknowledgments
