@@ -43,6 +43,8 @@ Common scripts:
 * Lint: `npm run lint`
 * Format: `npm run format`
 
+To package the extension, run `npx @vscode/vsce package`. To install the extension, run `code --install-extension lemonade-sdk-0.0.1.vsix`.
+
 ## 🔧 Configuration
 The extension connects to `http://127.0.0.1:8000/api/v1` by default. You can change this by:
 1. Opening VS Code Command Palette (Ctrl+Shift+P)
