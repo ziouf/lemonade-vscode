@@ -5,13 +5,15 @@ Use your local Lemonade LLM server with VS Code GitHub Copilot Chat! Connect to 
 
 ## 🚀 Getting Started
 1. Make sure your Lemonade server is running on `http://127.0.0.1:8000`
-2. Install the Lemonade Copilot Chat extension
-3. Open VS Code's chat interface
-4. Click the model picker and click "Manage Models..."
-5. Select "Lemonade" provider
-6. If needed, configure a custom server URL using the "Manage Lemonade Provider" command
-7. Select from any models that are loaded in your Lemonade server (automatically detected)
-8. Start chatting with your local LLM models! 🥳
+    * We recommend setting the context size to at least 32k by using the Lemonade tray or `--ctx-size` cli option.
+1. Install the Lemonade Copilot Chat extension
+1. Open VS Code's chat interface
+1. Click the model picker and click "Manage Models..."
+1. Select "Lemonade" provider
+1. Select from any models that are loaded in your Lemonade server (automatically detected)
+1. Start chatting with your local LLM models! 🥳
+
+> NOTE: If needed, configure a custom server URL using the "Manage Lemonade Provider" command
 
 ## 🌟 Why Choose Lemonade for Copilot?
 * **🔒 Complete Privacy**: Your code never leaves your machine. Everything stays local and secure
@@ -24,9 +26,7 @@ Use your local Lemonade LLM server with VS Code GitHub Copilot Chat! Connect to 
 
 ## Requirements
 * VS Code 1.104.0 or higher
-* Lemonade server running locally on port 8000 (default)
-* One or more models loaded in your Lemonade server (any OpenAI-compatible models)
-* Server must support the `/models` endpoint for model discovery
+* Lemonade server 8.1.10 or higher
 
 ## 🛠️ Development
 ```bash
