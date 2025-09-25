@@ -99,7 +99,7 @@ export class LemonadeChatModelProvider implements LanguageModelChatProvider {
 		if (models.length === 0) {
 			if (!options.silent) {
 				vscode.window.showWarningMessage(
-					"No models available from Lemonade server. Make sure Lemonade server is running."
+					"No models available from Lemonade server. Make sure Lemonade server is running. You can download it from lemonade-server.ai."
 				);
 			}
 			return [];
