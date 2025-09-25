@@ -50,6 +50,9 @@ export class LemonadeChatModelProvider implements LanguageModelChatProvider {
 	private _emittedTextToolCallKeys = new Set<string>();
 	private _emittedTextToolCallIds = new Set<string>();
 
+	/** Buffer for handling control tokens that might be split across streaming chunks. */
+	private _controlTokenBuffer = "";
+
 	/**
 	 * Create a provider using the given secret storage for the server URL.
 	 * @param secrets VS Code secret storage.
@@ -201,7 +204,7 @@ export class LemonadeChatModelProvider implements LanguageModelChatProvider {
         this._textToolActive = undefined;
         this._emittedTextToolCallKeys.clear();
         this._emittedTextToolCallIds.clear();
-
+		this._controlTokenBuffer = "";
 
 		let requestBody: Record<string, unknown> | undefined;
 		const trackingProgress: Progress<LanguageModelResponsePart> = {
@@ -322,36 +325,35 @@ export class LemonadeChatModelProvider implements LanguageModelChatProvider {
 		}
 	}
 
-
 	/**
 	 * Read and parse the Lemonade server streaming (SSE-like) response and report parts.
 	 * @param responseBody The readable stream body.
 	 * @param progress Progress reporter for streamed parts.
 	 * @param token Cancellation token.
 	 */
-	    private async processStreamingResponse(
-	        responseBody: ReadableStream<Uint8Array>,
-	        progress: vscode.Progress<vscode.LanguageModelResponsePart>,
-	        token: vscode.CancellationToken,
-	    ): Promise<void> {
+    private async processStreamingResponse(
+        responseBody: ReadableStream<Uint8Array>,
+        progress: vscode.Progress<vscode.LanguageModelResponsePart>,
+        token: vscode.CancellationToken,
+    ): Promise<void> {
         const reader = responseBody.getReader();
         const decoder = new TextDecoder();
         let buffer = "";
 
-			try {
-				while (!token.isCancellationRequested) {
-					const { done, value } = await reader.read();
+		try {
+			while (!token.isCancellationRequested) {
+				const { done, value } = await reader.read();
                 if (done) { break; }
 
-					buffer += decoder.decode(value, { stream: true });
-					const lines = buffer.split("\n");
-					buffer = lines.pop() || "";
+				buffer += decoder.decode(value, { stream: true });
+				const lines = buffer.split("\n");
+				buffer = lines.pop() || "";
 
-					for (const line of lines) {
-						if (!line.startsWith("data: ")) {
-							continue;
-						}
-						const data = line.slice(6);
+				for (const line of lines) {
+					if (!line.startsWith("data: ")) {
+						continue;
+					}
+					const data = line.slice(6);
                     if (data === "[DONE]") {
                         // Do not throw on [DONE]; any incomplete/empty buffers are ignored.
                         await this.flushToolCallBuffers(progress, /*throwOnInvalid*/ false);
@@ -360,8 +362,8 @@ export class LemonadeChatModelProvider implements LanguageModelChatProvider {
                         continue;
                     }
 
-						try {
-							const parsed = JSON.parse(data);
+					try {
+						const parsed = JSON.parse(data);
                         await this.processDelta(parsed, progress);
                     } catch {
                         // Silently ignore malformed SSE lines temporarily
@@ -378,6 +380,8 @@ export class LemonadeChatModelProvider implements LanguageModelChatProvider {
             this._textToolParserBuffer = "";
             this._textToolActive = undefined;
             this._emittedTextToolCallKeys.clear();
+			this._emittedTextToolCallIds.clear();
+			this._controlTokenBuffer = "";
         }
     }
 
@@ -478,6 +482,91 @@ export class LemonadeChatModelProvider implements LanguageModelChatProvider {
         return emitted;
     }
 
+	/**
+	 * Strip control tokens with buffering to handle tokens split across chunks.
+	 * This handles older-style control tokens like <tool_call> and <function=...
+	 */
+	private stripControlTokensWithBuffering(text: string): string {
+		let data = this._controlTokenBuffer + text;
+		let result = "";
+		let pos = 0;
+
+		while (pos < data.length) {
+			let foundMatch = false;
+
+			// Check for complete control token patterns
+			const controlPatterns = [
+				/<tool_call>/g,
+				/<\/function>/g,
+				/<\|tool_calls_section_(?:begin|end)\|>/g,
+				/<\|tool_call_(?:argument_)?(?:begin|end)\|>/g,
+				/<function=[a-zA-Z0-9_\-.]+>/g  // Match complete function tags
+			];
+
+			// Try to match any control pattern at current position
+			for (const pattern of controlPatterns) {
+				pattern.lastIndex = 0; // Reset regex state
+				const remaining = data.slice(pos);
+				const match = pattern.exec(remaining);
+
+				if (match && match.index === 0) {
+					// Found a complete token at current position, skip it
+					pos += match[0].length;
+					foundMatch = true;
+					break;
+				}
+			}
+
+			if (!foundMatch) {
+				// Check for potential incomplete control tokens near end of chunk
+				let isPartialToken = false;
+				if (pos >= data.length - 50) { // Check last 50 chars for partial tokens
+					const remaining = data.slice(pos);
+
+					// Check for partial patterns that could complete in next chunk
+					const partialPatterns = [
+						/^<tool_cal?$/,
+						/^<tool_call?$/,
+						/^<\|tool_calls?$/,
+						/^<\|tool_calls_section?$/,
+						/^<\|tool_calls_section_(?:begin|end)?$/,
+						/^<\|tool_call?$/,
+						/^<\|tool_call_(?:argument_)?$/,
+						/^<\|tool_call_(?:argument_)?(?:begin|end)?$/,
+						/^<function?$/,
+						/^<function=?$/,
+						/^<function=[a-zA-Z0-9_\-.]*$/,  // Partial function name
+						/^<\/function?$/
+					];
+
+					for (const pattern of partialPatterns) {
+						if (pattern.test(remaining)) {
+							isPartialToken = true;
+							break;
+						}
+					}
+				}
+
+				if (isPartialToken) {
+					// Keep remaining text in buffer for next chunk
+					this._controlTokenBuffer = data.slice(pos);
+					break;
+				} else {
+					// Safe to emit this character
+					result += data[pos];
+					pos++;
+				}
+			}
+		}
+
+		// If we consumed everything, clear the buffer
+		if (pos >= data.length) {
+			this._controlTokenBuffer = "";
+		}
+
+		return result;
+	}
+
     /**
      * Process streamed text content for inline tool-call control tokens and emit text/tool calls.
      * Returns which parts were emitted for logging/flow control.
@@ -508,13 +597,13 @@ export class LemonadeChatModelProvider implements LanguageModelChatProvider {
                     })();
                     if (longestPartialPrefix > 0) {
                         const visible = data.slice(0, data.length - longestPartialPrefix);
-                        if (visible) { visibleOut += this.stripControlTokens(visible); }
+                        if (visible) { visibleOut += this.stripControlTokensWithBuffering(visible); }
                         this._textToolParserBuffer = data.slice(data.length - longestPartialPrefix);
                         data = "";
                         break;
                     } else {
-                        // All visible, clean other control tokens
-                        visibleOut += this.stripControlTokens(data);
+                        // All visible, clean other control tokens with buffering
+                        visibleOut += this.stripControlTokensWithBuffering(data);
                         data = "";
                         break;
                     }
@@ -522,7 +611,7 @@ export class LemonadeChatModelProvider implements LanguageModelChatProvider {
                 // Emit text before the token
                 const pre = data.slice(0, b);
                 if (pre) {
-                    visibleOut += this.stripControlTokens(pre);
+                    visibleOut += this.stripControlTokensWithBuffering(pre);
                 }
                 // Advance past BEGIN
                 data = data.slice(b + BEGIN.length);
@@ -728,5 +817,4 @@ export class LemonadeChatModelProvider implements LanguageModelChatProvider {
 			return text;
 		}
 	}
-
 }
