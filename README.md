@@ -30,8 +30,8 @@ Use your local Lemonade LLM server with VS Code GitHub Copilot Chat! Connect to 
 
 ## 🛠️ Development
 ```bash
-git clone https://github.com/lemonade-sdk/lemonade
-cd lemonade-server
+git clone https://github.com/lemonade-sdk/lemonade-vscode
+cd lemonade-vscode
 npm install
 npm run compile
 ```

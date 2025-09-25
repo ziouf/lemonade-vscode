@@ -2,11 +2,11 @@ import * as vscode from "vscode";
 import { LemonadeChatModelProvider } from "./provider";
 
 export function activate(context: vscode.ExtensionContext) {
-	const ext = vscode.extensions.getExtension("Lemonade.lemonade-server");
+	const ext = vscode.extensions.getExtension("lemonade-sdk.lemonade-sdk");
 	const extVersion = ext?.packageJSON?.version ?? "unknown";
 	const vscodeVersion = vscode.version;
 	// Keep UA minimal: only extension version and VS Code version
-	const ua = `lemonade-server/${extVersion} VSCode/${vscodeVersion}`;
+	const ua = `lemonade-sdk/${extVersion} VSCode/${vscodeVersion}`;
 
 	const provider = new LemonadeChatModelProvider(context.secrets, ua);
 	// Register the Lemonade provider under the vendor id used in package.json

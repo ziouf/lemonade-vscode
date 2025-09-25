@@ -1,14 +1,14 @@
 {
-	"name": "lemonade-server",
-	"publisher": "Lemonade",
-	"displayName": "Lemonade Server Provider for GitHub Copilot Chat",
+	"name": "lemonade-sdk",
+	"publisher": "lemonade-sdk",
+	"displayName": "Lemonade for GitHub Copilot",
 	"description": "An extension that integrates Lemonade local LLM server into GitHub Copilot Chat",
 	"icon": "assets/logo.png",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/lemonade-sdk/lemonade"
 	},
-	"version": "0.0.5",
+	"version": "0.0.1",
 	"engines": {
 		"vscode": "^1.104.0"
 	},
@@ -22,8 +22,8 @@
 	},
 	"badges": [
 		{
-		"url": "https://img.shields.io/github/stars/lemonade/lemonade-server?style=social",
-		"description": "Star lemonade-server on Github",
+		"url": "https://img.shields.io/github/stars/lemonade-sdk/lemonade?style=social",
+		"description": "Star lemonade on Github",
 		"href": "https://github.com/lemonade-sdk/lemonade"
 		}
 	],
