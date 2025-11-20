@@ -16,7 +16,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(
 		vscode.commands.registerCommand("lemonade.manage", async () => {
 			const existing = await context.secrets.get("lemonade.serverUrl");
-			const defaultUrl = "http://127.0.0.1:8000/api/v1";
+			const defaultUrl = "http://localhost:8000/api/v1";
 			const serverUrl = await vscode.window.showInputBox({
 				title: "Lemonade Server URL",
 				prompt: existing ? "Update your Lemonade server URL" : "Enter your Lemonade server URL",
